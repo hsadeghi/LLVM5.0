@@ -1,0 +1,72 @@
+Index: include/llvm/InitializePasses.h
+===================================================================
+--- include/llvm/InitializePasses.h	(revision 301212)
++++ include/llvm/InitializePasses.h	(working copy)
+@@ -368,6 +368,7 @@
+ void initializeWriteBitcodePassPass(PassRegistry&);
+ void initializeWriteThinLTOBitcodePass(PassRegistry&);
+ void initializeXRayInstrumentationPass(PassRegistry&);
++void initializeIndOptimizerPass(PassRegistry&);
+ }
+ 
+ #endif
+Index: include/llvm/LinkAllPasses.h
+===================================================================
+--- include/llvm/LinkAllPasses.h	(revision 301212)
++++ include/llvm/LinkAllPasses.h	(working copy)
+@@ -206,6 +206,7 @@
+       (void) llvm::createMemDerefPrinter();
+       (void) llvm::createFloat2IntPass();
+       (void) llvm::createEliminateAvailableExternallyPass();
++      (void) llvm::createIndOptimizerPass();
+ 
+       (void)new llvm::IntervalPartition();
+       (void)new llvm::ScalarEvolutionWrapperPass();
+Index: include/llvm/Transforms/Scalar.h
+===================================================================
+--- include/llvm/Transforms/Scalar.h	(revision 301212)
++++ include/llvm/Transforms/Scalar.h	(working copy)
+@@ -558,6 +558,11 @@
+ //
+ FunctionPass *createLoopDataPrefetchPass();
+ 
++//===----------------------------------------------------------------------===//
++// Perform Scalar & Induction optimization pass
++FunctionPass* createIndOptimizerPass();
++extern char& IndOptimizerID;
++
+ ///===---------------------------------------------------------------------===//
+ ModulePass *createNameAnonGlobalPass();
+ 
+Index: lib/Transforms/Scalar/CMakeLists.txt
+===================================================================
+--- lib/Transforms/Scalar/CMakeLists.txt	(revision 301212)
++++ lib/Transforms/Scalar/CMakeLists.txt	(working copy)
+@@ -61,6 +61,7 @@
+   StraightLineStrengthReduce.cpp
+   StructurizeCFG.cpp
+   TailRecursionElimination.cpp
++  IndcutionOptimzer.cpp
+ 
+   ADDITIONAL_HEADER_DIRS
+   ${LLVM_MAIN_INCLUDE_DIR}/llvm/Transforms
+Index: lib/Transforms/Scalar/Scalar.cpp
+===================================================================
+--- lib/Transforms/Scalar/Scalar.cpp	(revision 301212)
++++ lib/Transforms/Scalar/Scalar.cpp	(working copy)
+@@ -96,6 +96,7 @@
+   initializeLoopLoadEliminationPass(Registry);
+   initializeLoopSimplifyCFGLegacyPassPass(Registry);
+   initializeLoopVersioningPassPass(Registry);
++  initializeIndOptimizerPass(Registry);
+ }
+ 
+ void LLVMInitializeScalarOpts(LLVMPassRegistryRef R) {
+@@ -278,3 +279,7 @@
+ void LLVMAddLowerExpectIntrinsicPass(LLVMPassManagerRef PM) {
+   unwrap(PM)->add(createLowerExpectIntrinsicPass());
+ }
++
++void LLVMAddIndOptimizerPass(LLVMPassManagerRef PM) {
++  unwrap(PM)->add(createIndOptimizerPass());
++}
